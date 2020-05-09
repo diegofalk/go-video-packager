@@ -22,6 +22,10 @@ type packageRequest struct {
 	Kid       string `json:"kid"`
 }
 
+type packageResponse struct {
+	StreamID string `json:"stream_id"`
+}
+
 func apiRun(httpListenAddress string) {
 	router := mux.NewRouter().StrictSlash(true)
 	apiRegister(router)
@@ -102,6 +106,14 @@ func apiPackageHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
+
+	// Write response
+	err = json.NewEncoder(w).Encode(packageResponse{id})
+	if err != nil {
+		panic(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 
 	fmt.Printf("stream: %v. ID: %s", stream, id)
 }

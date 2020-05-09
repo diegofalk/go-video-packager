@@ -91,3 +91,43 @@ func (db *Mongodb) InsertStream(stream Stream) (string, error) {
 
 	return streamId, nil
 }
+
+func (db *Mongodb) GetStream(id string) (Stream, error) {
+	if db.client == nil {
+		return Stream{}, fmt.Errorf("mongodb not initialized")
+	}
+
+	collection := db.client.Database(database).Collection(streamsCollection)
+
+	var stream Stream
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return Stream{}, err
+	}
+	filter := bson.M{"_id": objectID}
+	err = collection.FindOne(context.Background(), filter).Decode(&stream)
+	if err != nil {
+		return Stream{}, err
+	}
+	return stream, nil
+}
+
+func (db *Mongodb) UpdateStreamStatus(id string, status string) error {
+	if db.client == nil {
+		return fmt.Errorf("mongodb not initialized")
+	}
+
+	collection := db.client.Database(database).Collection(streamsCollection)
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	filter := bson.M{"_id": objectID}
+	update := bson.M{"$set": bson.M{"status": status}}
+	_, err = collection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
+	return nil
+}

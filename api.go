@@ -102,20 +102,20 @@ func apiPackageHandler(w http.ResponseWriter, r *http.Request) {
 		Kid:       requestData.Kid,
 		Status:    "PACKAGING",
 	}
-	id, err := db.InsertStream(stream)
+	streamID, err := db.InsertStream(stream)
 	if err != nil {
 		panic(err)
 	}
 
 	// Write response
-	err = json.NewEncoder(w).Encode(packageResponse{id})
+	err = json.NewEncoder(w).Encode(packageResponse{streamID})
 	if err != nil {
 		panic(err)
 	}
 
 	select {
-	case data <- id:
-		fmt.Printf("inserted packaging job ID: %s\n", id)
+	case data <- streamID:
+		fmt.Printf("inserted packaging job ID: %s\n", streamID)
 	default:
 		panic(fmt.Errorf("packaging queue full"))
 	}

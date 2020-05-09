@@ -1,7 +1,16 @@
 package main
 
-import "github.com/diegofalk/go-video-packager/api"
+import (
+	"github.com/diegofalk/go-video-packager/database"
+)
+
+var db *database.Mongodb
 
 func main() {
-	api.Run(":8081")
+	db = database.NewMongodb()
+	err := db.Init()
+	if err != nil {
+		panic(err)
+	}
+	apiRun(":8081")
 }

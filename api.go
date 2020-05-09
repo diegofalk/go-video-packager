@@ -113,7 +113,12 @@ func apiPackageHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	select {
+	case data <- id:
+		fmt.Printf("inserted packaging job ID: %s\n", id)
+	default:
+		panic(fmt.Errorf("packaging queue full"))
+	}
 
-	fmt.Printf("stream: %v. ID: %s", stream, id)
+	w.Header().Set("Content-Type", "application/json")
 }

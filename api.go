@@ -8,6 +8,8 @@ import (
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 type publishResponse struct {
@@ -37,9 +39,13 @@ func apiHomeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func apiPublishHandler(w http.ResponseWriter, r *http.Request) {
+	// get arrival time
+	now := time.Now()
+	arrivalTime := strconv.FormatInt(now.Unix(), 10)
+
 	// get uploaded file
 	var uploadedContent storage.UploadedContent
-	uploadedContent.Name = mux.Vars(r)["path"]
+	uploadedContent.Name = arrivalTime + "_" + mux.Vars(r)["path"] // add timestamp to avoid duplicates
 	r.Body.Read(uploadedContent.Data)
 	defer r.Body.Close()
 
@@ -53,13 +59,7 @@ func apiPublishHandler(w http.ResponseWriter, r *http.Request) {
 	content := database.Content{
 		Name: uploadedContent.Name,
 	}
-	err = db.SaveContent(content)
-	if err != nil {
-		panic(err)
-	}
-
-	// Get contentID
-	id, err := db.GetContentID(content)
+	id, err := db.InsertContent(content)
 	if err != nil {
 		panic(err)
 	}
@@ -76,14 +76,32 @@ func apiPublishHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func apiPackageHandler(w http.ResponseWriter, r *http.Request) {
-
 	var requestData packageRequest
 
+	// decode request body
 	err := json.NewDecoder(r.Body).Decode(&requestData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	fmt.Printf("request: %v", requestData)
+	// check if the content by ID exists
+	_, err = db.GetContent(requestData.ContentID)
+	if err != nil {
+		panic(err)
+	}
+
+	// create the stream model
+	stream := database.Stream{
+		ContentID: requestData.ContentID,
+		Key:       requestData.Key,
+		Kid:       requestData.Kid,
+		Status:    "PACKAGING",
+	}
+	id, err := db.InsertStream(stream)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("stream: %v. ID: %s", stream, id)
 }

@@ -1,75 +1,93 @@
 package database
 
 import (
+	"context"
 	"fmt"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
-	"time"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const (
-	hosts              = "localhost:27017"
+	uri                = "mongodb://localhost:27017"
 	database           = "vpackagerdb"
-	username           = ""
-	password           = ""
 	contentsCollection = "contents"
 	streamsCollection  = "streams"
 )
 
 type Mongodb struct {
-	session *mgo.Session
+	client *mongo.Client
 }
 
 func NewMongodb() *Mongodb {
 	return &Mongodb{
-		session: nil,
+		client: nil,
 	}
 }
 
 func (db *Mongodb) Init() error {
-
-	info := &mgo.DialInfo{
-		Addrs:    []string{hosts},
-		Timeout:  60 * time.Second,
-		Database: database,
-		Username: username,
-		Password: password,
-	}
-
-	session, err := mgo.DialWithInfo(info)
+	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
 	if err != nil {
 		return err
 	}
-	db.session = session
+	err = client.Connect(context.Background())
+	if err != nil {
+		return err
+	}
+	db.client = client
 
 	return nil
 }
 
-func (db *Mongodb) SaveContent(content Content) error {
-	if db.session == nil {
-		return fmt.Errorf("mongodb not initialized")
-	}
-
-	collection := db.session.DB(database).C(contentsCollection)
-
-	err := collection.Insert(content)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (db *Mongodb) GetContentID(content Content) (string, error) {
-	if db.session == nil {
+func (db *Mongodb) InsertContent(content Content) (string, error) {
+	if db.client == nil {
 		return "", fmt.Errorf("mongodb not initialized")
 	}
 
-	collection := db.session.DB(database).C(contentsCollection)
+	collection := db.client.Database(database).Collection(contentsCollection)
 
-	var newContent Content
-	err := collection.Find(bson.M{"name": content.Name}).One(&newContent)
+	result, err := collection.InsertOne(context.Background(), content)
 	if err != nil {
 		return "", err
 	}
-	return newContent.ID.Hex(), nil
+	contentId := result.InsertedID.(primitive.ObjectID).Hex()
+
+	return contentId, nil
+}
+
+func (db *Mongodb) GetContent(id string) (Content, error) {
+	if db.client == nil {
+		return Content{}, fmt.Errorf("mongodb not initialized")
+	}
+
+	collection := db.client.Database(database).Collection(contentsCollection)
+
+	var content Content
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return Content{}, err
+	}
+	filter := bson.M{"_id": objectID}
+	err = collection.FindOne(context.Background(), filter).Decode(&content)
+	if err != nil {
+		return Content{}, err
+	}
+	return content, nil
+}
+
+func (db *Mongodb) InsertStream(stream Stream) (string, error) {
+	if db.client == nil {
+		return "", fmt.Errorf("mongodb not initialized")
+	}
+
+	collection := db.client.Database(database).Collection(streamsCollection)
+
+	result, err := collection.InsertOne(context.Background(), stream)
+	if err != nil {
+		return "", err
+	}
+	streamId := result.InsertedID.(primitive.ObjectID).Hex()
+
+	return streamId, nil
 }

@@ -1,10 +1,12 @@
 package database
 
-import "gopkg.in/mgo.v2/bson"
+import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type Content struct {
-	ID      bson.ObjectId `json:"id" bson:"_id,omitempty"`
-	Name 	string `json:"name"`
+	ID   primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	Name string             `json:"name"`
 }
 
 type Stream struct {

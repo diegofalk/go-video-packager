@@ -110,6 +110,7 @@ func apiPackageHandler(w http.ResponseWriter, r *http.Request) {
 	if len(requestData.Key) != keyKidLen || len(requestData.Kid) != keyKidLen {
 		log.Errorf("Wrong key/kid length %s", err.Error())
 		http.Error(w, "Wrong key/kid length", http.StatusBadRequest)
+		return
 	}
 
 	// create the stream model

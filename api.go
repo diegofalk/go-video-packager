@@ -6,11 +6,12 @@ import (
 	"github.com/diegofalk/go-video-packager/database"
 	"github.com/diegofalk/go-video-packager/storage"
 	"github.com/gorilla/mux"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
 )
+
+const keyKidLen = 22
 
 type publishResponse struct {
 	ContentID string `json:"content_id"`
@@ -60,7 +61,9 @@ func apiPublishHandler(w http.ResponseWriter, r *http.Request) {
 	fileName := arrivalTime + "_" + mux.Vars(r)["path"] // add timestamp to avoid duplicates
 	err := storage.SaveContentFile(r.Body, fileName)
 	if err != nil {
-		panic(err)
+		log.Error("Save content error: %s", err.Error())
+		http.Error(w, "upload failed", http.StatusInternalServerError)
+		return
 	}
 	// Save content model on DB
 	content := database.Content{
@@ -68,18 +71,21 @@ func apiPublishHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	id, err := db.InsertContent(content)
 	if err != nil {
-		panic(err)
+		log.Error("Save content error: %s", err.Error())
+		http.Error(w, "upload failed", http.StatusInternalServerError)
+		return
 	}
 
 	// Write response
 	err = json.NewEncoder(w).Encode(publishResponse{id})
 	if err != nil {
-		panic(err)
+		log.Error("Save content error: %s", err.Error())
+		http.Error(w, "upload failed", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-
-	fmt.Println("File " + fileName + " Uploaded successfully")
+	log.Info("File " + fileName + " Uploaded successfully")
 }
 
 func apiPackageHandler(w http.ResponseWriter, r *http.Request) {
@@ -88,14 +94,22 @@ func apiPackageHandler(w http.ResponseWriter, r *http.Request) {
 	// decode request body
 	err := json.NewDecoder(r.Body).Decode(&requestData)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		log.Error("Can't decode request: %s", err.Error())
+		http.Error(w, "unable to decode request", http.StatusBadRequest)
 		return
 	}
 
 	// check if the content by ID exists
 	_, err = db.GetContent(requestData.ContentID)
 	if err != nil {
-		panic(err)
+		log.Errorf("Content %s not found %s", requestData.ContentID, err.Error())
+		http.Error(w, "content not found", http.StatusBadRequest)
+		return
+	}
+	// check key length
+	if len(requestData.Key) != keyKidLen || len(requestData.Kid) != keyKidLen {
+		log.Errorf("Wrong key/kid length %s", err.Error())
+		http.Error(w, "Wrong key/kid length", http.StatusBadRequest)
 	}
 
 	// create the stream model
@@ -108,20 +122,24 @@ func apiPackageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	streamID, err := db.InsertStream(stream)
 	if err != nil {
-		panic(err)
+		log.Errorf("Insert stream error: %s", err.Error())
+		http.Error(w, "processing failed", http.StatusInternalServerError)
+		return
 	}
 
 	// Write response
 	err = json.NewEncoder(w).Encode(packageResponse{streamID})
 	if err != nil {
-		panic(err)
+		log.Errorf("response encoding failed: %s", err.Error())
+		http.Error(w, "processing failed", http.StatusInternalServerError)
+		return
 	}
 
 	select {
 	case data <- streamID:
-		fmt.Printf("inserted packaging job ID: %s\n", streamID)
+		log.Infof("inserted packaging job ID: %s", streamID)
 	default:
-		panic(fmt.Errorf("packaging queue full"))
+		log.Warningf("packaging queue full")
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -134,7 +152,9 @@ func apiStreaminfoHandler(w http.ResponseWriter, r *http.Request) {
 	// get stream
 	stream, err := db.GetStream(streamID)
 	if err != nil {
-		panic(err)
+		log.Errorf("Stream not %s found %s", streamID, err.Error())
+		http.Error(w, "Stream not found", http.StatusBadRequest)
+		return
 	}
 
 	switch stream.Status {
@@ -162,9 +182,11 @@ func apiStreaminfoHandler(w http.ResponseWriter, r *http.Request) {
 	// Write response
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
-		panic(err)
+		log.Errorf("response encoding failed: %s", err.Error())
+		http.Error(w, "processing failed", http.StatusInternalServerError)
+		return
 	}
-
+	log.Infof("Requested info for: %s", streamID)
 	w.Header().Set("Content-Type", "application/json")
 }
 
@@ -176,8 +198,11 @@ func apiStreamMpdHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := storage.LoadStreamFile(w, fileName)
 	if err != nil {
-		panic(err)
+		log.Errorf("file not found: %s", err.Error())
+		http.Error(w, "file not found", http.StatusBadRequest)
+		return
 	}
+	log.Infof("Requested mpd: %s", streamID)
 }
 
 func apiStreamChunkHandler(w http.ResponseWriter, r *http.Request) {
@@ -189,6 +214,9 @@ func apiStreamChunkHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := storage.LoadStreamFile(w, fileName)
 	if err != nil {
-		panic(err)
+		log.Errorf("file not found: %s", err.Error())
+		http.Error(w, "file not found", http.StatusBadRequest)
+		return
 	}
+	log.Infof("Requested chunk: %s", fileName)
 }

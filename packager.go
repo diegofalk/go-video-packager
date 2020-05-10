@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/diegofalk/go-video-packager/database"
 	"os/exec"
-	"time"
 )
 
 func packagerRun() {
@@ -17,38 +16,42 @@ func packagerRun() {
 		// get stream
 		stream, err := db.GetStream(streamID)
 		if err != nil {
-			panic(err)
+			log.Errorf("Stream %s not found: %s", streamID, err.Error())
 		}
 
 		// get content
 		content, err := db.GetContent(stream.ContentID)
 		if err != nil {
-			panic(err)
+			log.Errorf("Content %s not found: %s", stream.ContentID, err.Error())
+			db.UpdateStreamStatus(streamID, "FAILED")
+			continue
 		}
 
 		// do package
 		err = doPackage(stream, content)
 		if err != nil {
-			panic(err)
-		}
-
-		// update stream
-		err = db.UpdateStreamStatus(streamID, "DONE")
-		if err != nil {
-			panic(err)
+			log.Errorf("Packaging error: %s", err.Error())
+			db.UpdateStreamStatus(streamID, "FAILED")
+			continue
 		}
 
 		// TODO: use config
-		url := "http://localhost:8081/stream/" + stream.ID.Hex() + "/" + stream.ID.Hex() + ".mpd"
+		url := "http://localhost:8081/stream/" + streamID + "/" + streamID + ".mpd"
 		err = db.UpdateStreamUrl(streamID, url)
 		if err != nil {
-			panic(err)
+			log.Errorf("Error updating URL: %s", err.Error())
+			db.UpdateStreamStatus(streamID, "FAILED")
+			continue
+		}
+		// update status
+		err = db.UpdateStreamStatus(streamID, "DONE")
+		if err != nil {
+			log.Errorf("Error updating status: %s", err.Error())
 		}
 
-		fmt.Printf("processed %s\n", streamID)
-		time.Sleep(5 * time.Second)
+		log.Infof("packaging job ended for streamID: %s", streamID)
 	}
-	fmt.Printf("packager ended")
+	log.Infof("packager ended")
 }
 
 func doPackage(stream database.Stream, content database.Content) error {
@@ -62,7 +65,7 @@ func doPackage(stream database.Stream, content database.Content) error {
 	//keyHex := base64toHexString(stream.Key)
 
 	// command attribs
-	app := "./packager-osx"
+	app := "./packager-osx" // shaka packager
 	audioSegments := "in=" + contentPath + ",stream=audio,init_segment=" + streamFolder +
 		"audio/init.mp4,segment_template=" + streamFolder + "audio/$Number$.m4s,drm_label=ALL"
 	videoSegments := "in=" + contentPath + ",stream=video,init_segment=" + streamFolder +

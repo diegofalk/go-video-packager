@@ -42,7 +42,9 @@ func apiRegister(router *mux.Router) {
 	router.HandleFunc("/", apiHomeHandler)
 	router.HandleFunc("/publish/{path:.*\\.mp4}", apiPublishHandler).Methods("POST")
 	router.HandleFunc("/package", apiPackageHandler).Methods("POST")
-	router.HandleFunc("/stream/{stream_id}", apiStreamHandler).Methods("GET")
+	router.HandleFunc("/streaminfo/{stream_id}", apiStreaminfoHandler).Methods("GET")
+	router.HandleFunc("/stream/{stream_id}/{path:.*\\.mpd}", apiStreamMpdHandler).Methods("GET")
+	router.HandleFunc("/stream/{stream_id}/{folder}/{chunk}", apiStreamChunkHandler).Methods("GET")
 }
 
 func apiHomeHandler(w http.ResponseWriter, r *http.Request) {
@@ -54,20 +56,15 @@ func apiPublishHandler(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	arrivalTime := strconv.FormatInt(now.Unix(), 10)
 
-	// get uploaded file
-	var uploadedContent storage.UploadedContent
-	uploadedContent.Name = arrivalTime + "_" + mux.Vars(r)["path"] // add timestamp to avoid duplicates
-	uploadedContent.Data = r.Body
-
-	// save it locally
-	err := uploadedContent.Save()
+	// save uploaded file localy
+	fileName := arrivalTime + "_" + mux.Vars(r)["path"] // add timestamp to avoid duplicates
+	err := storage.SaveContentFile(r.Body, fileName)
 	if err != nil {
 		panic(err)
 	}
-
 	// Save content model on DB
 	content := database.Content{
-		Name: uploadedContent.Name,
+		Name: fileName,
 	}
 	id, err := db.InsertContent(content)
 	if err != nil {
@@ -82,7 +79,7 @@ func apiPublishHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	fmt.Println("File " + uploadedContent.Name + " Uploaded successfully")
+	fmt.Println("File " + fileName + " Uploaded successfully")
 }
 
 func apiPackageHandler(w http.ResponseWriter, r *http.Request) {
@@ -130,7 +127,7 @@ func apiPackageHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 }
 
-func apiStreamHandler(w http.ResponseWriter, r *http.Request) {
+func apiStreaminfoHandler(w http.ResponseWriter, r *http.Request) {
 	// get stream id
 	streamID := mux.Vars(r)["stream_id"]
 
@@ -169,4 +166,29 @@ func apiStreamHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+}
+
+func apiStreamMpdHandler(w http.ResponseWriter, r *http.Request) {
+	// get uploaded file
+	path := mux.Vars(r)["path"]
+	streamID := mux.Vars(r)["stream_id"]
+	fileName := streamID + "/" + path
+
+	err := storage.LoadStreamFile(w, fileName)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func apiStreamChunkHandler(w http.ResponseWriter, r *http.Request) {
+	// get uploaded file
+	chunk := mux.Vars(r)["chunk"]
+	streamID := mux.Vars(r)["stream_id"]
+	folder := mux.Vars(r)["folder"]
+	fileName := streamID + "/" + folder + "/" + chunk
+
+	err := storage.LoadStreamFile(w, fileName)
+	if err != nil {
+		panic(err)
+	}
 }

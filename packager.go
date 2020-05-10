@@ -11,7 +11,6 @@ import (
 
 func packagerRun() {
 	for {
-
 		// get stream id
 		streamID := <-data
 
@@ -41,6 +40,7 @@ func packagerRun() {
 		fmt.Printf("processed %s\n", streamID)
 		time.Sleep(5 * time.Second)
 	}
+	fmt.Printf("packager ended")
 }
 
 func doPackage(stream database.Stream, content database.Content) error {
@@ -49,11 +49,9 @@ func doPackage(stream database.Stream, content database.Content) error {
 	streamFolder := "stream/" + stream.ID.Hex() + "/"
 	mpdPath := streamFolder + stream.ID.Hex() + ".mpd"
 
-	// decode base64 keys
+	//// decode base64 keys
 	//kidHex := base64toHexString(stream.Kid)
-	//fmt.Println(kidHex)
 	//keyHex := base64toHexString(stream.Key)
-	//fmt.Println(keyHex)
 
 	// command attribs
 	app := "./packager-osx"
@@ -62,23 +60,25 @@ func doPackage(stream database.Stream, content database.Content) error {
 	videoSegments := "in=" + contentPath + ",stream=video,init_segment=" + streamFolder +
 		"video/init.mp4,segment_template=" + streamFolder + "video/$Number$.m4s,drm_label=ALL"
 	//encryptionKeys := "label=ALL:key_id=" + kidHex + ":key=" + keyHex
+	//scheme := "cbcs"
+	baseUrl := ""
 
+	//opt0 := "--protection_scheme"
 	//opt1 := "--enable_raw_key_encryption"
 	opt2 := "--mpd_output"
 	//opt3 := "--keys"
+	opt4 := "--base_urls"
 
 	// execute command
-	cmd := exec.Command(app, audioSegments, videoSegments, opt2, mpdPath)
-	fmt.Print(cmd)
-	err := cmd.Run()
+	output, err := exec.Command(app, audioSegments, videoSegments /*opt0, scheme, opt1, opt3, encryptionKeys,*/, opt2, mpdPath, opt4, baseUrl).CombinedOutput()
 	if err != nil {
+		fmt.Printf("Command error: %s\n", output)
 		return err
 	}
 	return nil
 }
+
 func base64toHexString(base64Key string) string {
-	fmt.Println(base64Key)
-	fmt.Println(len(base64Key))
 	binaryKey, _ := base64.RawStdEncoding.DecodeString(base64Key[:len(base64Key)])
 	return hex.EncodeToString(binaryKey)
 }

@@ -131,3 +131,23 @@ func (db *Mongodb) UpdateStreamStatus(id string, status string) error {
 	}
 	return nil
 }
+
+func (db *Mongodb) UpdateStreamUrl(id string, url string) error {
+	if db.client == nil {
+		return fmt.Errorf("mongodb not initialized")
+	}
+
+	collection := db.client.Database(database).Collection(streamsCollection)
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	filter := bson.M{"_id": objectID}
+	update := bson.M{"$set": bson.M{"url": url}}
+	_, err = collection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
+	return nil
+}

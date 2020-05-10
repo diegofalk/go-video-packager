@@ -37,6 +37,14 @@ func packagerRun() {
 		if err != nil {
 			panic(err)
 		}
+
+		// TODO: use config
+		url := "http://localhost:8081/stream/" + stream.ID.Hex() + "/" + stream.ID.Hex() + ".mpd"
+		err = db.UpdateStreamUrl(streamID, url)
+		if err != nil {
+			panic(err)
+		}
+
 		fmt.Printf("processed %s\n", streamID)
 		time.Sleep(5 * time.Second)
 	}

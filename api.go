@@ -26,6 +26,12 @@ type packageResponse struct {
 	StreamID string `json:"stream_id"`
 }
 
+type streamResponse struct {
+	Url string `json:"url"`
+	Key string `json:"key"`
+	Kid string `json:"kid"`
+}
+
 func apiRun(httpListenAddress string) {
 	router := mux.NewRouter().StrictSlash(true)
 	apiRegister(router)
@@ -36,6 +42,7 @@ func apiRegister(router *mux.Router) {
 	router.HandleFunc("/", apiHomeHandler)
 	router.HandleFunc("/publish/{path:.*\\.mp4}", apiPublishHandler).Methods("POST")
 	router.HandleFunc("/package", apiPackageHandler).Methods("POST")
+	router.HandleFunc("/stream/{stream_id}", apiStreamHandler).Methods("GET")
 }
 
 func apiHomeHandler(w http.ResponseWriter, r *http.Request) {
@@ -50,8 +57,7 @@ func apiPublishHandler(w http.ResponseWriter, r *http.Request) {
 	// get uploaded file
 	var uploadedContent storage.UploadedContent
 	uploadedContent.Name = arrivalTime + "_" + mux.Vars(r)["path"] // add timestamp to avoid duplicates
-	r.Body.Read(uploadedContent.Data)
-	defer r.Body.Close()
+	uploadedContent.Data = r.Body
 
 	// save it locally
 	err := uploadedContent.Save()
@@ -101,6 +107,7 @@ func apiPackageHandler(w http.ResponseWriter, r *http.Request) {
 		Key:       requestData.Key,
 		Kid:       requestData.Kid,
 		Status:    "PACKAGING",
+		Url:       "",
 	}
 	streamID, err := db.InsertStream(stream)
 	if err != nil {
@@ -118,6 +125,47 @@ func apiPackageHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("inserted packaging job ID: %s\n", streamID)
 	default:
 		panic(fmt.Errorf("packaging queue full"))
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+}
+
+func apiStreamHandler(w http.ResponseWriter, r *http.Request) {
+	// get stream id
+	streamID := mux.Vars(r)["stream_id"]
+
+	// get stream
+	stream, err := db.GetStream(streamID)
+	if err != nil {
+		panic(err)
+	}
+
+	switch stream.Status {
+	case "FAILED":
+		http.Error(w, "Packaging failed", http.StatusBadRequest)
+		return
+	case "PACKAGING":
+		http.Error(w, "Packaging in progress", http.StatusAccepted)
+		return
+	case "DONE":
+		break
+	default:
+		http.Error(w, "Internal error", http.StatusBadRequest)
+		return
+	}
+	// after this point, we only got DONE cases
+
+	// create the stream model
+	response := streamResponse{
+		Url: stream.Url,
+		Key: stream.Key,
+		Kid: stream.Kid,
+	}
+
+	// Write response
+	err = json.NewEncoder(w).Encode(response)
+	if err != nil {
+		panic(err)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

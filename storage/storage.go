@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"io"
 	"os"
 )
 
@@ -8,7 +9,7 @@ const localSavePath string = "content/"
 
 type UploadedContent struct {
 	Name string
-	Data []byte
+	Data io.ReadCloser
 }
 
 func (uc *UploadedContent) Save() error {
@@ -18,7 +19,7 @@ func (uc *UploadedContent) Save() error {
 	}
 	defer file.Close()
 
-	file.Write(uc.Data)
+	io.Copy(file, uc.Data)
 
 	return nil
 }

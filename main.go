@@ -11,7 +11,6 @@ var db *database.Mongodb
 var data = make(chan string, maxQueuedPackagingJobs)
 
 func main() {
-
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	// init mongo

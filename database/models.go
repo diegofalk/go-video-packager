@@ -10,8 +10,10 @@ type Content struct {
 }
 
 type Stream struct {
-	ContentID string `json:"content_id"`
-	Key       string `json:"key"`
-	Kid       string `json:"kid"`
-	Status    string `json:"status"`
+	ID        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	ContentID string             `json:"content_id"`
+	Key       string             `json:"key"`
+	Kid       string             `json:"kid"`
+	Status    string             `json:"status"`
+	Url       string             `json:"url"`
 }

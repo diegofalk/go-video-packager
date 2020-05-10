@@ -160,7 +160,7 @@ func apiStreaminfoHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch stream.Status {
 	case "FAILED":
-		http.Error(w, "Packaging failed", http.StatusBadRequest)
+		http.Error(w, "Packaging failed", http.StatusInternalServerError)
 		return
 	case "PACKAGING":
 		http.Error(w, "Packaging in progress", http.StatusAccepted)
@@ -168,7 +168,7 @@ func apiStreaminfoHandler(w http.ResponseWriter, r *http.Request) {
 	case "DONE":
 		break
 	default:
-		http.Error(w, "Internal error", http.StatusBadRequest)
+		http.Error(w, "Internal error", http.StatusInternalServerError)
 		return
 	}
 	// after this point, we only got DONE cases

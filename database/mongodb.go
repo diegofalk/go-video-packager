@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	uri                = "mongodb://localhost:27017"
+	uri                = "mongodb://mongodb:27017"
 	database           = "vpackagerdb"
 	contentsCollection = "contents"
 	streamsCollection  = "streams"

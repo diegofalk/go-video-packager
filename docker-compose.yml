@@ -1,0 +1,28 @@
+version: '3'
+services:
+  app:
+    build: .
+    image: govpack
+    ports:
+      - "8081:8081"
+    networks:
+      - network1
+    depends_on:
+      - mongodb
+
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - "mongodata:/data/db"
+    networks:
+      - network1
+
+volumes:
+  mongodata:
+
+networks:
+  network1:
+    driver: bridge

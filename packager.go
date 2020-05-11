@@ -79,9 +79,10 @@ func doPackage(stream database.Stream, content database.Content) error {
 	opt2 := "--mpd_output"
 	//opt3 := "--keys"
 	opt4 := "--base_urls"
+	opt5 := "--generate_static_live_mpd"
 
 	// execute command
-	output, err := exec.Command(app, audioSegments, videoSegments /*opt0, scheme, opt1, opt3, encryptionKeys,*/, opt2, mpdPath, opt4, baseUrl).CombinedOutput()
+	output, err := exec.Command(app, audioSegments, videoSegments /*opt0, scheme, opt1, opt3, encryptionKeys,*/, opt2, mpdPath, opt4, baseUrl, opt5).CombinedOutput()
 	if err != nil {
 		fmt.Printf("Command error: %s\n", output)
 		return err

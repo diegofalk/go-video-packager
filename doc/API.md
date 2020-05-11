@@ -64,9 +64,11 @@ Packaging in progress
 ## Stream files
 Get stream files
 #### URLs
-`/stream/<stream_id>/<stream_id>.mpd`
-`/stream/<stream_id>/<folder>/<init_file>.mp4`
-`/stream/<stream_id>/<folder>/<chunk_file>.m4s`
+```
+/stream/<stream_id>/<stream_id>.mpd
+/stream/<stream_id>/<folder>/<init_file>.mp4
+/stream/<stream_id>/<folder>/<chunk_file>.m4s
+```
 #### Method
 `GET`
 #### Request Body

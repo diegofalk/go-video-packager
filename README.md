@@ -21,7 +21,7 @@ This will make docker run two containers. The app container and mongodb containe
 - [Shaka packager](https://github.com/google/shaka-packager) to package and encrypt content.
 
 ## Documentation
-- API
+- [API](https://github.com/diegofalk/go-video-packager/blob/master/doc/API.md)
 - Design
 - How to validate playback
 - Multi resolution solution plan

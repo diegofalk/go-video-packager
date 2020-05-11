@@ -65,7 +65,7 @@ func doPackage(stream database.Stream, content database.Content) error {
 	//keyHex := base64toHexString(stream.Key)
 
 	// command attribs
-	app := "./packager-osx" // shaka packager
+	app := "bin/packager-linux" // shaka packager
 	audioSegments := "in=" + contentPath + ",stream=audio,init_segment=" + streamFolder +
 		"audio/init.mp4,segment_template=" + streamFolder + "audio/$Number$.m4s,drm_label=ALL"
 	videoSegments := "in=" + contentPath + ",stream=video,init_segment=" + streamFolder +

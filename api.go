@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const keyKidLen = 22
+const keyKidLen int = 22
 
 type publishResponse struct {
 	ContentID string `json:"content_id"`
@@ -107,8 +107,8 @@ func apiPackageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// check key length
-	if len(requestData.Key) != keyKidLen || len(requestData.Kid) != keyKidLen {
-		log.Errorf("Wrong key/kid length %s", err.Error())
+	if (len(requestData.Key) != keyKidLen) || (len(requestData.Kid) != keyKidLen) {
+		log.Errorf("Wrong key/kid length")
 		http.Error(w, "Wrong key/kid length", http.StatusBadRequest)
 		return
 	}

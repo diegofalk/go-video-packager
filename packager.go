@@ -71,29 +71,36 @@ func doPackage(stream database.Stream, content database.Content) error {
 	streamFolder := localStreamsPath + stream.ID.Hex() + "/"
 	mpdPath := streamFolder + stream.ID.Hex() + ".mpd"
 
-	//// decode base64 keys
-	//kidHex := base64toHexString(stream.Kid)
-	//keyHex := base64toHexString(stream.Key)
-
-	// command attribs
-	app := shakaBinary // shaka packager
+	// segment templates
 	audioSegments := "in=" + contentPath + ",stream=audio,init_segment=" + streamFolder +
 		"audio/init.mp4,segment_template=" + streamFolder + "audio/$Number$.m4s,drm_label=ALL"
 	videoSegments := "in=" + contentPath + ",stream=video,init_segment=" + streamFolder +
 		"video/init.mp4,segment_template=" + streamFolder + "video/$Number$.m4s,drm_label=ALL"
-	//encryptionKeys := "label=ALL:key_id=" + kidHex + ":key=" + keyHex
-	//scheme := "cbcs"
-	baseUrl := ""
 
-	//opt0 := "--protection_scheme"
-	//opt1 := "--enable_raw_key_encryption"
-	opt2 := "--mpd_output"
-	//opt3 := "--keys"
-	opt4 := "--base_urls"
-	opt5 := "--generate_static_live_mpd"
+	var args []string
 
-	// execute command
-	output, err := exec.Command(app, audioSegments, videoSegments /*opt0, scheme, opt1, opt3, encryptionKeys,*/, opt2, mpdPath, opt4, baseUrl, opt5).CombinedOutput()
+	// args definition
+	args = append(args, audioSegments, videoSegments)
+	args = append(args,"--mpd_output", mpdPath)
+	args = append(args,"--base_urls", "")
+	args = append(args,"--generate_static_live_mpd")
+
+	// add extra args if it is encrypted
+	if len(stream.Key) != 0 {
+
+		// decode keys
+		kidHex := base64toHexString(stream.Kid)
+		keyHex := base64toHexString(stream.Key)
+
+		encryptionKeys := "label=ALL:key_id=" + kidHex + ":key=" + keyHex
+
+		args = append(args,"--protection_scheme", "cbcs")
+		args = append(args,"--enable_raw_key_encryption")
+		args = append(args,"--keys", encryptionKeys)
+	}
+
+	// run command
+	output, err  := exec.Command(shakaBinary, args...).CombinedOutput()
 	if err != nil {
 		fmt.Printf("Command error: %s\n", output)
 		return err

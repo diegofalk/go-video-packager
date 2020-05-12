@@ -106,11 +106,13 @@ func apiPackageHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "content not found", http.StatusBadRequest)
 		return
 	}
-	// check key length
-	if (len(requestData.Key) != keyKidLen) || (len(requestData.Kid) != keyKidLen) {
-		log.Errorf("Wrong key/kid length")
-		http.Error(w, "Wrong key/kid length", http.StatusBadRequest)
-		return
+	// check key length ( len(Key) == 0 means unencrypted )
+	if len(requestData.Key) != 0 {
+		if (len(requestData.Key) != keyKidLen) || (len(requestData.Kid) != keyKidLen) {
+			log.Errorf("Wrong key/kid length")
+			http.Error(w, "Wrong key/kid length", http.StatusBadRequest)
+			return
+		}
 	}
 
 	// create the stream model

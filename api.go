@@ -137,7 +137,7 @@ func apiPackageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	select {
-	case data <- streamID:
+	case queue <- streamID:
 		log.Infof("inserted packaging job ID: %s", streamID)
 	default:
 		log.Warningf("packaging queue full")

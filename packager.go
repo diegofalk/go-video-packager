@@ -8,56 +8,67 @@ import (
 	"os/exec"
 )
 
+// TODO: move to config file
+const localContentPath string = "content/"
+const localStreamsPath string = "stream/"
+const shakaBinary string = "bin/packager-linux" // shaka packager
+const baseUrl string = "http://localhost:8081/"
+
 func packagerRun() {
 	for {
 		// get stream id
-		streamID := <-data
+		streamID := <-queue // blocked, waiting for new streams
 
-		// get stream
-		stream, err := db.GetStream(streamID)
-		if err != nil {
-			log.Errorf("Stream %s not found: %s", streamID, err.Error())
-		}
-
-		// get content
-		content, err := db.GetContent(stream.ContentID)
-		if err != nil {
-			log.Errorf("Content %s not found: %s", stream.ContentID, err.Error())
-			db.UpdateStreamStatus(streamID, "FAILED")
-			continue
-		}
-
-		// do package
-		err = doPackage(stream, content)
-		if err != nil {
-			log.Errorf("Packaging error: %s", err.Error())
-			db.UpdateStreamStatus(streamID, "FAILED")
-			continue
-		}
-
-		// TODO: use config
-		url := "http://localhost:8081/stream/" + streamID + "/" + streamID + ".mpd"
-		err = db.UpdateStreamUrl(streamID, url)
-		if err != nil {
-			log.Errorf("Error updating URL: %s", err.Error())
-			db.UpdateStreamStatus(streamID, "FAILED")
-			continue
-		}
-		// update status
-		err = db.UpdateStreamStatus(streamID, "DONE")
-		if err != nil {
-			log.Errorf("Error updating status: %s", err.Error())
-		}
-
-		log.Infof("packaging job ended for streamID: %s", streamID)
+		// run packaging task on a new goroutine
+		go packageTask(streamID)
 	}
 	log.Infof("packager ended")
 }
 
+func packageTask(streamID string) {
+	// get stream
+	stream, err := db.GetStream(streamID)
+	if err != nil {
+		log.Errorf("Stream %s not found: %s", streamID, err.Error())
+	}
+
+	// get content
+	content, err := db.GetContent(stream.ContentID)
+	if err != nil {
+		log.Errorf("Content %s not found: %s", stream.ContentID, err.Error())
+		db.UpdateStreamStatus(streamID, "FAILED")
+		return
+	}
+
+	// do package
+	err = doPackage(stream, content)
+	if err != nil {
+		log.Errorf("Packaging error: %s", err.Error())
+		db.UpdateStreamStatus(streamID, "FAILED")
+		return
+	}
+
+	// TODO: use config
+	url := baseUrl + localStreamsPath + streamID + "/" + streamID + ".mpd"
+	err = db.UpdateStreamUrl(streamID, url)
+	if err != nil {
+		log.Errorf("Error updating URL: %s", err.Error())
+		db.UpdateStreamStatus(streamID, "FAILED")
+		return
+	}
+	// update status
+	err = db.UpdateStreamStatus(streamID, "DONE")
+	if err != nil {
+		log.Errorf("Error updating status: %s", err.Error())
+	}
+
+	log.Infof("packaging job ended for streamID: %s", streamID)
+}
+
 func doPackage(stream database.Stream, content database.Content) error {
 	// define all paths
-	contentPath := "content/" + content.Name
-	streamFolder := "stream/" + stream.ID.Hex() + "/"
+	contentPath := localContentPath + content.Name
+	streamFolder := localStreamsPath + stream.ID.Hex() + "/"
 	mpdPath := streamFolder + stream.ID.Hex() + ".mpd"
 
 	//// decode base64 keys
@@ -65,7 +76,7 @@ func doPackage(stream database.Stream, content database.Content) error {
 	//keyHex := base64toHexString(stream.Key)
 
 	// command attribs
-	app := "bin/packager-linux" // shaka packager
+	app := shakaBinary // shaka packager
 	audioSegments := "in=" + contentPath + ",stream=audio,init_segment=" + streamFolder +
 		"audio/init.mp4,segment_template=" + streamFolder + "audio/$Number$.m4s,drm_label=ALL"
 	videoSegments := "in=" + contentPath + ",stream=video,init_segment=" + streamFolder +

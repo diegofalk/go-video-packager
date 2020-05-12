@@ -5,6 +5,7 @@ import (
 	"os"
 )
 
+// TODO: move to config file
 const localContentPath string = "content/"
 const localStreamsPath string = "stream/"
 

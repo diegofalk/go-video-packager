@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// TODO: move to config file
 const (
 	uri                = "mongodb://mongodb:27017"
 	database           = "vpackagerdb"

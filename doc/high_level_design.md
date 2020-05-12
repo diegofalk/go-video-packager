@@ -25,7 +25,7 @@ A `content` is an uploaded file ready to be packaged. Defined by the following s
 }
 ```
 Where `id` is a unique content id and `name` is the file name.
-The uploaded file will be saved locally under the `content/` as `name`. 
+The uploaded file will be saved locally under `content/` as `name`. 
 Unix timestamp is appended to the file name to avoid file overloading in storage.
 ### Stream
 A `stream` represents a packaging job. Defined by the following structure
@@ -39,16 +39,16 @@ A `stream` represents a packaging job. Defined by the following structure
     url
 }
 ```
-- `id`: Unique job id 
+- `id`: Unique stream id 
 - `content_id`: content id to package 
 - `key` and `kid`: Keys required for encryption
-- `status`: Packaging job status. Can be `IN PROGRESS`, `DONE` or `FAILED`
-- `url`: When `status` is `DONE` it contains the _.mpd_ manifest url.
+- `status`: Packaging status. Can be `IN PROGRESS`, `DONE` or `FAILED`
+- `url`: When `status` is `DONE` it contains the .mpd manifest url.
 
 ## Module design
 
 ### Main processes
-The application is divided in two main simultaneous processes. `API` and `Packager`. 
+The application is divided in two main parallel processes. `API` and `Packager`. 
 
 #### API
 REST API interface. Described [here](https://github.com/diegofalk/go-video-packager/blob/master/doc/API.md)

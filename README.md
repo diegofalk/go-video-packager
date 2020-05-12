@@ -6,7 +6,7 @@ This microservice provide a simple API that allows to:
 - Package uploaded content for MPEG-DASH
 - Expose stream files for playback 
 
-## Run docker-compose
+## Run
 In order to run the app on docker through the use of docker-compose run the following:
 
 <pre><code>$ cd go-video-packager   // go to the project directory
@@ -34,5 +34,5 @@ If the packaging job is done, the response will provide a stream `url` and the n
 ## Documentation
 - [API](https://github.com/diegofalk/go-video-packager/blob/master/doc/API.md)
 - [Design](https://github.com/diegofalk/go-video-packager/blob/master/doc/high_level_design.md)
-- How to validate playback
-- Multi resolution solution plan
+- [How to validate playback](https://github.com/diegofalk/go-video-packager/blob/master/doc/validate_playback.md)
+- [Multi bitrate plan](https://github.com/diegofalk/go-video-packager/blob/master/doc/multi_bitrate.md)
